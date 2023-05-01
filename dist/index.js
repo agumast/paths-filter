@@ -85,7 +85,7 @@ class Filter {
             matchedFiles.push(...result[key]);
         }
         result['unFilteredChanged'] = files.filter(file => !matchedFiles.includes(file) && file.status !== 'deleted');
-        result['allDeleted'] = files.filter(file => file.status == 'deleted');
+        result['unFilteredDeleted'] = files.filter(file => !matchedFiles.includes(file) && file.status == 'deleted');
         return result;
     }
     isMatch(file, patterns) {
@@ -517,6 +517,7 @@ async function run() {
         const ref = core.getInput('ref', { required: false });
         const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
+        const extensions = core.getMultilineInput('ext', { required: false });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
@@ -525,7 +526,10 @@ async function run() {
             return;
         }
         const filter = new filter_1.Filter(filtersYaml);
-        const files = await getChangedFiles(token, base, ref, initialFetchDepth);
+        let files = await getChangedFiles(token, base, ref, initialFetchDepth);
+        if (extensions) {
+            files = filterFilesbyExtension(files, extensions);
+        }
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
         exportResults(results, listFiles);
@@ -533,6 +537,9 @@ async function run() {
     catch (error) {
         core.setFailed(error.message);
     }
+}
+function filterFilesbyExtension(files, extensions) {
+    return files.filter(file => extensions.includes('.' + file.filename.split('.').pop()));
 }
 function isPathInput(text) {
     return !(text.includes('\n') || text.includes(':'));
@@ -685,7 +692,7 @@ function exportResults(results, format) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
         if (files.length > 0) {
-            if (key !== 'unFilteredChanged' && key !== 'allDeleted') {
+            if (key !== 'unFilteredChanged' && key !== 'unFilteredDeleted') {
                 changes.push(key);
             }
             core.info('Matching files:');

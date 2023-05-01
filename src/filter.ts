@@ -61,7 +61,7 @@ export class Filter {
       matchedFiles.push(...result[key])
     }
     result['unFilteredChanged'] = files.filter(file => !matchedFiles.includes(file) && file.status !== 'deleted')
-    result['allDeleted'] = files.filter(file => file.status == 'deleted')
+    result['unFilteredDeleted'] = files.filter(file => !matchedFiles.includes(file) && file.status == 'deleted')
 
     return result
   }
