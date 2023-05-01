@@ -36,7 +36,7 @@ async function run(): Promise<void> {
     const filter = new Filter(filtersYaml)
 
     let files = await getChangedFiles(token, base, ref, initialFetchDepth)
-    if (extensions) {
+    if (extensions && extensions.length !== 0) {
       files = filterFilesbyExtension(files, extensions)
     }
     core.info(`Detected ${files.length} changed files`)
